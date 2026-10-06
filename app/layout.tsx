@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./track-map.css";
 
 export const metadata: Metadata = {
   title: "Apex Telemetry | 2026 F1 Driver Comparison",
