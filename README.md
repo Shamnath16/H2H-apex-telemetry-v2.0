@@ -2,7 +2,7 @@
 
 An AMOLED Formula 1 telemetry workbench: compare two drivers and timed laps, inspect speed/throttle/brake/gear traces, read sector deltas, and generate a free local engineering brief.
 
-**Live site:** https://f1-telemetry-lab-2026.gnshamnath16.chatgpt.site (existing owner-private access).
+**Live site:** https://f1-telemetry-lab-2026.gnshamnath16.chatgpt.site.
 
 ## Features
 
