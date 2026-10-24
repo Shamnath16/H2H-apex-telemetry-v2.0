@@ -1,126 +1,69 @@
-# vinext-starter
+# H2H APEX Telemetry v2.0
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+An AMOLED Formula 1 telemetry workbench: compare two drivers and timed laps, inspect speed/throttle/brake/gear traces, read sector deltas, and generate a free local engineering brief.
 
-## Prerequisites
+**Live site:** https://f1-telemetry-lab-2026.gnshamnath16.chatgpt.site (existing owner-private access).
 
-- Node.js `>=22.13.0`
-- Portable: Windows, macOS, or Linux; no Bash required
-- Managed Linux: managed Linux runtime with Bash, `flock`, `curl`, `sha256sum`, and GNU `timeout`
-- Git is required only for publishing
+## Features
 
-## Sites Lifecycle
+- Black, red and white interface with responsive driver cards, circuit map, keyboard focus states and reduced-motion support.
+- Completed FP1, FP2, FP3, qualifying, sprint qualifying, sprint and race sessions from OpenF1.
+- Current-year session discovery every five minutes while the page is open, plus manual refresh.
+- Two selected laps, fastest timed laps by default, driver swap, sector differences and four telemetry channels.
+- Same-origin telemetry endpoint with bounded lap requests, short caching, concurrent request deduplication and upstream timeout.
+- Free Qwen 2.5 0.5B Instruct commentary using WebLLM in a separate browser worker. No API keys or paid inference service.
+- Always-available deterministic measured insights; AI selects the emphasis while verified source facts are preserved verbatim.
+- Links to FIA event documents and the dated 2026 United States car presentation submission.
 
-The Sites initializer copies the shared starter and selects managed-linux only when `SITES_MANAGED_LINUX_CONTAINER=1`; otherwise it selects portable. It saves the selection only in ignored `.sites-runtime/execution-profile.json`. Both profiles copy/configure first, then use the plugin's separate `install-dependencies.mjs` step to measure installation independently. Edit source under `app/` and follow the Sites skill for installation, preview, builds, and publishing.
+## Run locally
 
-Run `node <plugin-root>/scripts/configure-execution-profile.mjs` only when the profile is unknown for the current checkout and environment. Profile changes do not alter tracked source or require reinstalling otherwise-valid dependencies; restart an existing preview to use the new selection. Do not commit or upload `.sites-runtime/`.
-
-This starter does not use `wrangler.jsonc`.
-
-`install:ci` runs `npm ci` once against the shared lockfile, disables parent-workspace discovery, and includes required dev/optional dependencies despite production/omit settings. Sharp defaults to prebuilt binaries unless explicitly configured otherwise. Do not overlap installers.
-
-- **Portable:** Preserve host HOME, npm cache, registry, proxy, temporary paths, retry/concurrency settings, and lifecycle-script policy. Use `--prefer-offline --no-audit --no-fund`.
-- **Managed Linux:** Use the existing project-local HOME/cache/tmp setup and Linux install lock, tarball preflight, and timeout. Restore the image-seeded npm cache only when its lockfile hash matches; retain network fallback. Builds keep their existing timeout. These helpers are not invoked by the portable profile.
-
-`scripts/sites-env.mjs` preserves the caller's HOME, npm cache, proxy, XDG, and temporary-directory configuration while defaulting Wrangler and Miniflare state to the checkout. If npm reports an unwritable cache, select a writable path with `npm_config_cache` for that install. The `dev` and `start` scripts also keep Wrangler logs inside the checkout. Generated `.sites-runtime/` and `.wrangler/` directories are disposable and ignored by Git.
-
-On portable, `npm run dev` uses `vinext dev` with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state, rejects an ordinary duplicate launch, and recovers stale state after a stopped process; exactly simultaneous starts can race. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep portable previews on loopback.
-
-For browser QA on managed Linux, use `sites-preview start`. The project's dev script runs Vite and accepts the supervisor's `--host 0.0.0.0 --port 4173 --strictPort` arguments. The internal browser uses `http://terminal.local:4173/`; it is not a user-facing URL. The supervisor owns the preview lifecycle. The ignored local profile survives the supervisor's cleared process environment.
-
-The portable profile simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. Mock auth is disabled in the managed-linux profile and is not included in production builds; hosted authentication remains dispatch-owned.
-
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
-
-Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
-
-Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=true` to opt in.
-
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `@cloudflare/workers-types` provides Worker types; `cloudflare-env.d.ts` declares optional `DB`/`BUCKET` bindings—update these declarations if binding names change
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Local D1 migrations
-
-For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
+Requires Node.js 22.13 or newer and pnpm 11.25.0.
 
 ```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_example.sql
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
-Replace the filename with the pending migration and `DB` with your D1 binding name if different. Use `.wrangler/state`, not `.wrangler/state/v3`; Wrangler adds the versioned directories. Do not replay migrations already applied locally. This updates only the preview database; publishing applies production migrations separately.
+Open the local URL printed by Vite (normally http://localhost:5173).
 
-## Diagnostic Commands
+```sh
+pnpm typecheck
+pnpm build
+pnpm start
+```
 
-- `npm run install:ci`: perform the one locked dependency install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: preview the built Worker locally with D1/R2 support
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+`pnpm start` runs the built Cloudflare Worker locally. Use the Sites publication workflow for hosted deployment; a GitHub push alone does not deploy the Site.
 
-When using the Sites plugin, follow its skill instructions for installation, builds, and publishing. These npm commands remain available for standalone use.
+## Free AI
 
-The portable build runs Vinext directly without a host `timeout` command. The managed-linux build uses `scripts/build-verified.sh` and its existing `SITES_BUILD_TIMEOUT` setting.
+Click **Generate AI brief** after both traces load. The browser downloads Qwen model weights on first use (several hundred MB), caches them, and performs inference on the visitor's GPU. Current WebGPU-capable Chrome or Edge on suitable hardware is recommended. Model loading and generation are cancellable; changing the comparison terminates stale work. The worker is released after generation to free GPU resources.
 
-## Learn More
+No telemetry is submitted to a hosted AI provider. Model assets are fetched from the public URLs configured by WebLLM. Network access, sufficient storage/GPU memory, WebGPU and compatible drivers are required. Unsupported devices keep the measured summary. Local generation is free of API charges, but consumes the visitor's bandwidth, power and compute.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Model: [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct), Apache 2.0. Runtime: [WebLLM](https://github.com/mlc-ai/web-llm), Apache 2.0. Model and runtime licenses do not cover the site's Formula 1 assets.
+
+## Reading the data correctly
+
+- Timing and telemetry come from [OpenF1](https://openf1.org/docs/). Historical access is free; real-time access requires a paid OpenF1 subscription and is not configured here.
+- Sample rate is approximately 3.7 Hz. Traces align by relative elapsed lap time, **not physical track distance**. They are unsuitable for exact corner braking-point claims.
+- Full-throttle share is the fraction of available samples at >=95% throttle, not a time-weighted calculation.
+- Fastest timed lap selection excludes pit-out laps and incomplete durations but does not verify deleted-lap status or comparable tyre/fuel conditions.
+- A higher peak speed does not prove reduced drag, a setup change, or time gained on a straight. Fuel, tyres, tow, track evolution and energy deployment are uncontrolled.
+- FIA car presentation submissions describe intended changes. They do not establish which parts a driver used on a specific lap or the resulting performance effect.
+- Upgrade documents are linked sources, not an automatically ingested or verified upgrade database. The dated US GP link is not relabelled for other events.
+- Automatic updates currently occur on page open and every five minutes while open. No background scheduler or unattended ingestion is configured.
+
+## Architecture
+
+See [Architecture](docs/architecture.md), [Verification](docs/verification.md) and the retained [Sites runtime guide](docs/sites-runtime.md).
+
+## Branding and distribution
+
+APEX is an independent analysis application, not affiliated with Formula 1 or the FIA. Formula 1 display fonts were obtained from Formula 1's official website at the user's request. They and associated marks remain their owners' property; this repository does not grant redistribution rights. Review brand/font licensing before public distribution. No repository-wide open-source license is asserted for these third-party assets.
+
+## GitHub and deployment
+
+Repository: https://github.com/Shamnath16/H2H-apex-telemetry-v2.0
+
+The GitHub repository is a source mirror. Keep the existing `.openai/hosting.json` project ID when updating this Site. Do not include `.env`, local runtime credentials, `.sites-runtime`, `.wrangler`, build output, or `node_modules` in commits. GitHub Actions runs a type check and production build; publication remains explicit through Sites.
+

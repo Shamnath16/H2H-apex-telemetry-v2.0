@@ -95,9 +95,9 @@ export function TrackMap({ circuitKey, sessionKey, trackName, lap }: Props) {
   return <section className="box track-panel" aria-label="Track map">
     <div className="track-panel-heading"><span>04 / CIRCUIT MAP</span><strong>{title}</strong></div>
     {drawing ? <svg viewBox="0 0 360 230" role="img" aria-label={`${title} track map with ${drawing.corners.length} numbered ${geometry?.estimated ? "estimated turn markers" : "turns"}`}>
-      <path d={drawing.line} fill="none" stroke="#d5fb62" strokeOpacity=".12" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={drawing.line} fill="none" stroke="#d5fb62" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      {drawing.corners.map(c => <g key={c.number}><circle cx={c.x} cy={c.y} r="3" fill="#d5fb62" /><circle cx={c.labelX} cy={c.labelY} r="10" fill="#171a1e" stroke={geometry?.estimated ? "#9c8cff" : "#d5fb62"} strokeWidth="1" /><text x={c.labelX} y={c.labelY + 3.5} textAnchor="middle" fill="#f2f3f0" fontSize="10" fontWeight="700">{c.number}</text></g>)}
+      <path d={drawing.line} fill="none" stroke="#ff3029" strokeOpacity=".12" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={drawing.line} fill="none" stroke="#ff3029" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {drawing.corners.map(c => <g key={c.number}><circle cx={c.x} cy={c.y} r="3" fill="#ff3029" /><circle cx={c.labelX} cy={c.labelY} r="10" fill="#080808" stroke={geometry?.estimated ? "#ffffff" : "#ff3029"} strokeWidth="1" /><text x={c.labelX} y={c.labelY + 3.5} textAnchor="middle" fill="#f2f3f0" fontSize="10" fontWeight="700">{c.number}</text></g>)}
     </svg> : <div className="track-empty">{pending ? "Loading track map…" : "Track geometry is unavailable for this session."}</div>}
     <div className="track-source">{geometry ? geometry.estimated ? "Estimated turn markers from OpenF1 GPS" : "Circuit geometry and turns: MultiViewer" : "Map follows the selected session"}</div>
   </section>;

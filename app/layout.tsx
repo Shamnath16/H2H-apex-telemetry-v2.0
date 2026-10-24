@@ -3,7 +3,7 @@ import "./globals.css";
 import "./track-map.css";
 
 export const metadata: Metadata = {
-  title: "Apex Telemetry | 2026 F1 Driver Comparison",
+  title: "H2H APEX Telemetry v2.0 | F1 Driver Comparison",
   description: "Explore 2026 Formula 1 driver telemetry, lap timing, sectors and data-led analysis across competitive sessions.",
   icons: {
     icon: "/favicon.svg",
@@ -22,3 +22,4 @@ export default function RootLayout({
     </html>
   );
 }
+
